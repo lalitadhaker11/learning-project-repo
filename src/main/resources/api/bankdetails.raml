@@ -1,0 +1,65 @@
+#%RAML 1.0
+title: BankDetails
+protocols:
+- HTTPS
+mediaType: 
+- application/json
+baseUri: http://localhost:8081/
+documentation:
+ - title: Mule Bank Details Database API.
+   content: !include documentation/doc.md
+traits: !include /traits/common-traits.yaml
+securitySchemes:
+ oauth2_0: !include securitySchemes/oauth2_0.raml
+securedBy: oauth2_0
+
+/checkBalance:
+ get:
+   queryParameters:
+     accountNumber:
+       required: true
+       maxLength: 5
+       minLength: 5
+     bankName:
+       required: true
+       enum: ['icici','axis']
+   responses:
+     200:
+       body:
+         application/json:
+           example: |
+             {"result":"your balance is 55000"}
+             
+/withDrawAmount:
+ get:
+   queryParameters:
+     accountNum:
+       required: true
+       maxLength: 5
+       minLength: 5
+     bankName:
+       required: true
+       enum: ['icici','axis']
+     amountToBeWithdrawn:
+       required: true
+   responses:
+     200:
+       body:
+         application/json:
+           example: |
+             {'result':'your balance is 10000'}
+           
+
+/create-bankDetails:
+ post:
+  description: Create a new outgoing transaction.
+  body:
+   application/json:
+    example: /customer-bankdetails-payload.json    
+  responses:
+    200:
+      body:
+        application/json:
+          example:  |
+            {'result':'Created record successfully'}
+                    

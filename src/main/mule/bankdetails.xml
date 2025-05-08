@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+    <http:listener-config name="bankdetails-httpListenerConfig" basePath="bank">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="bankdetails-config" api="bankdetails.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="136d19c1-5658-4578-a980-8085e099a6ec" >
+		<db:oracle-connection host="localhost" user="system" password="root" instance="XE" />
+	</db:config>
+	<api-gateway:autodiscovery apiId="20292258" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="76c745e6-ba21-4287-9d6e-d9262a9ee67a" flowRef="bankdetails-main" />
+	<flow name="bankdetails-main">
+        <http:listener config-ref="bankdetails-httpListenerConfig" path="/bankdetails/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus]" reasonPhrase="#[vars.httpMessage]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="bankdetails-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="84a70190-dee8-4c0c-899e-523c35447c0d" type="ANY">
+				<logger level="INFO" doc:name="Logger" doc:id="e7dfb610-e6d7-4b84-b9f8-b741d208ee0f" message='"Duplicate account number not allowed "'/>
+				<ee:transform doc:name="Transform Message" doc:id="8b29167a-404b-4d51-9a4e-7217a902ec18" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{ 
+	"code":"500",
+	"message":"unique constraint violated DB:QUERY_EXECUTION"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpMessage" ><![CDATA["error"]]></ee:set-variable>
+						<ee:set-variable variableName="httpStatus" ><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="bankdetails-console">
+        <http:listener config-ref="bankdetails-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="bankdetails-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\checkBalance:bankdetails-config">
+        <logger level="INFO" doc:name="Start Log" doc:id="a858b754-a4ef-4059-900a-accad898d93f" message='#["check account balance api"]'/>
+		<set-variable value="#[attributes]" doc:name="Set Variable" doc:id="51e2b23f-f571-41d1-88fe-d7ea7b1daa8e" variableName="attributes"/>
+		<db:select doc:name="Select" doc:id="c7b29be7-6125-45e7-bbc8-4d0387cd40bc" config-ref="Database_Config">
+			<db:sql ><![CDATA[select account_number, bank_name from customer_bank_details1 where account_number=:accountNumber]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	bankName: attributes.queryParams.bankName,
+	accountNumber: attributes.queryParams.accountNumber
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Set Response Message" doc:id="7be6b0e0-040f-4997-8359-70982135d5af">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	accountBalance: payload.BANK_NAME default "",
+	accountNumber: payload.ACCOUNT_NUMBER
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\withDrawAmount:bankdetails-config" doc:id="280dbe26-13ec-4488-99cd-047d1b51c295">
+        <logger level="INFO" doc:name="Start Log" doc:id="8b03dfd1-83b7-4dd3-98f8-01ca0cdaa227"/>
+		<db:select doc:name="Select Amount" doc:id="2f97f858-1085-4121-b758-d97d7df24530" config-ref="Database_Config">
+			<db:sql ><![CDATA[Select account_number from customer_bank_details1 where account_number=:accountNumber AND bank_name=:bank_name AND account_balance=:account_balance]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	accountNumber: attributes.queryParams.accountNum,
+   	bank_name: attributes.queryParams.bankName,
+	account_balance:attributes.queryParams.amountToBeWithdrawn,
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="f67050d6-0bcc-4091-92d0-8d6e4549f784">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	accountNumber: payload.accountNumber,
+	accountBalance: payload.accountBalance
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="End Log" doc:id="9c7a2c60-f217-4690-8c89-371edcde30a8" />
+    </flow>
+     <flow name="post:\create-bankDetails:bankdetails-config">
+		<logger level="INFO" doc:name="Start Bank Log" doc:id="a8e75868-e192-4099-81bd-8991ef3b72b5" message='"Start Bank Details Flow"'/>
+		<json:validate-schema doc:name="Validate schema" doc:id="312d2286-5c48-4964-b224-085367d7aa3c" schema="schemas/customer-json-schema.json"/>
+		<ee:transform doc:name="Prepare Bank Details Payload" doc:id="17b54ffe-ed14-42df-884c-13586d982c49" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	firstName: payload.firstName,
+	lastName: payload.lastName,
+	phone: payload.phone,
+	email: payload.email,
+	dateOfBirth: payload.dateOfBirth,
+	bankName: payload.bankName,
+	customerName: payload.customerName,
+	accountNumber: payload.accountNumber,
+	accountBalance: payload.accountBalance,
+	ifscCode: payload.ifscCode,
+	address: {
+		streetAddress: payload.address.streetAddress,
+		city: payload.address.city,
+		state: payload.address.state,
+		postal: payload.address.postal,
+		country: payload.address.country
+	}
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="bankDetailsPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	firstName: payload.firstName,
+	lastName: payload.lastName,
+	phone: payload.phone,
+	email: payload.email,
+	dateOfBirth: payload.dateOfBirth,
+	bankName: payload.bankName,
+	customerName: payload.customerName,
+	accountNumber: payload.accountNumber,
+	accountBalance: payload.accountBalance,
+	ifscCode: payload.ifscCode,
+	address: {
+		streetAddress: payload.address.streetAddress,
+		city: payload.address.city,
+		state: payload.address.state,
+		postal: payload.address.postal,
+		country: payload.address.country
+	}
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:insert doc:name="Insert bank details" doc:id="56796790-bbf8-4e5f-b9d9-21a1915862ca" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into CUSTOMER_BANK_DETAILS1(first_name, last_name, phone, email, date_of_birth, bank_name, customer_name, account_number, account_balance, ifsc_code) VALUES(:firstName, :lastName, :phone, :email, To_date(:dateOfBirth, 'yyyy-MM-dd'), :bankName, :customerName, :accountNumber,  :accountBalance, :ifscCode)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Prepare response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  result: "created bank details"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="End Log" doc:id="b2f0e861-40c0-45b0-8296-2264c40cdcaf" message='"Successfully Inserted Bank details"'/>
+    </flow>
+</mule>

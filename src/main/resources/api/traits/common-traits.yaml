@@ -1,0 +1,33 @@
+handlesAllErrors:
+ responses:
+   503:
+     description: withDrawAmount is greater than the total balance available.
+     body:
+       application/json:
+         example: 
+           error: withDrawAmount_exception
+           description: withDrawAmount Exception Occurred
+   403:
+     description: Authentication error response.
+     body:
+       application/json:
+         example: 
+           error: invalid_client
+           description: Invalid Client Id or Client Secret
+   400:
+     description: Account Number error response.
+     body:
+       application/json:
+         example: 
+           error: accountNumber_not_exactly_same
+           description: accountNumber is not exactly same
+    
+
+clientIdRequired:
+ headers:
+   client_id:
+     displayName: Client ID
+     type: string
+   client_secret:
+     displayName: Shared Secret
+     type: string 
